@@ -2,134 +2,44 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BENI-BET</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BENI-BET 1200 Matchs</title>
 <style>
-*{box-sizing:border-box}
-body{margin:0;font-family:Arial;background:#0f172a;color:white}
-.header{background:#16a34a;padding:12px;text-align:center;font-weight:bold;font-size:22px;position:sticky;top:0;z-index:10}
-.card{background:#1e293b;margin:12px;padding:14px;border-radius:12px}
-.balance{font-size:32px;color:#4ade80;font-weight:bold}
-.btn{width:100%;padding:14px;border:none;border-radius:10px;font-weight:bold;font-size:16px;margin-top:8px}
-.green{background:#16a34a;color:white}
-.gray{background:#334155;color:white}
-.match{background:#334155;padding:12px;border-radius:10px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
-.odds{display:flex;gap:6px}
-.odd{background:#0f172a;padding:8px 12px;border-radius:6px;border:1px solid #16a34a}
-.input{width:100%;padding:12px;border-radius:8px;border:none;margin:6px 0}
-.bet-slip{position:fixed;bottom:0;left:0;right:0;background:#1e293b;padding:12px;border-top:2px solid #16a34a;display:none}
+*{box-sizing:border-box}body{margin:0;font-family:Arial;background:#0f172a;color:#fff}
+.header{background:#16a34a;padding:12px;text-align:center;position:sticky;top:0}
+.logo{font-size:28px;font-weight:900}.logo span{color:#facc15}
+.card{background:#1e293b;margin:12px;padding:14px;border-radius:14px}
+.balance{font-size:32px;color:#4ade80;font-weight:900;text-align:center}
+.btn{width:100%;padding:14px;border:none;border-radius:10px;font-weight:900;margin:6px 0}
+.green{background:#16a34a;color:#fff}.yellow{background:#facc15;color:#000}.gray{background:#334155;color:#fff}
+.search{width:100%;padding:14px;border-radius:10px;border:none;background:#334155;color:#fff;margin:10px 0}
+.match{background:#334155;padding:12px;border-radius:12px;margin:8px 0;border-left:4px solid #16a34a}
+.league{font-size:11px;color:#94a3b8}.teams{font-weight:700;margin:4px 0}.time{font-size:12px;color:#facc15}
+.odds{display:flex;gap:6px;margin-top:8px}.odd{background:#0f172a;padding:8px 12px;border-radius:8px;flex:1;text-align:center;font-weight:900;border:1px solid #475569}
+.betslip{position:fixed;bottom:0;left:0;right:0;background:#1e293b;padding:12px;border-top:2px solid #16a34a;display:none}
+.betslip.show{display:block}
 </style>
 </head>
 <body>
-<div class="header">⚽ BÉNI BET - Goma</div>
-
-<div class="card">
-<div>Bienvenue <span id="userPhone">+243</span></div>
-<div class="balance" id="bal">0 CDF</div>
-<div style="display:flex;gap:8px">
-<button class="btn green" onclick="depot()">DÉPÔT</button>
-<button class="btn gray" onclick="retrait()">RETRAIT</button>
-</div>
-</div>
-
-<div class="card">
-<h3>🔥 Matchs du Jour</h3>
-<div id="matches"></div>
-</div>
-
-<div class="card">
-<h3>📋 Mon Coupon</h3>
-<div id="coupon">Aucun pari</div>
-<input id="mise" type="number" class="input" placeholder="Mise en CDF (min 1000)">
-<button class="btn green" onclick="placerPari()">PLACER LE PARI</button>
-</div>
-
-<div class="card">
-<h3>📜 Mes Paris</h3>
-<div id="historique">Aucun historique</div>
-</div>
-
+<div class="header"><div class="logo">BENI-<span>BET</span></div>GOMA - 1200 MATCHS</div>
+<div class="card"><div style="text-align:center;color:#94a3b8">SOLDE</div><div class="balance" id="bal">5,000 CDF</div>
+<div style="display:flex;gap:8px"><button class="btn green">+ DEPOT</button><button class="btn yellow">RETRAIT</button></div></div>
+<div class="card"><input class="search" id="search" placeholder="Rechercher equipe..." oninput="filterM()">
+<div id="count" style="text-align:center;padding:8px;color:#4ade80;font-weight:700"></div>
+<div id="matches"></div><button class="btn gray" onclick="showMore()">Voir 100 de plus</button></div>
+<div class="betslip" id="slip"><div style="display:flex;justify-content:space-between"><b id="slipCount">0</b><b onclick="document.getElementById('slip').classList.remove('show')" style="color:#ef4444">X FERMER</b></div><div id="slipList"></div>
+<div style="display:flex;gap:6px;margin:8px 0"><input id="mise" type="number" value="1000" style="flex:1;padding:12px;border-radius:8px;border:none;background:#334155;color:#fff"><div style="background:#0f172a;padding:12px;border-radius:8px">Cote: <b id="coteTot">1.00</b></div></div>
+<div>Gain: <b id="gain" style="color:#4ade80">0 CDF</b></div><button class="btn green" onclick="alert('Pari place!')">PLACER LE PARI</button></div>
 <script>
-let balance = parseInt(localStorage.getItem('beni_bal')||'0');
-let coupon = [];
-let historique = JSON.parse(localStorage.getItem('beni_hist')||'[]');
-let tel = localStorage.getItem('beni_tel');
-if(!tel){ tel=prompt('Entrez votre numéro de téléphone (+243):'); if(tel){localStorage.setItem('beni_tel',tel)}}
-document.getElementById('userPhone').innerText=tel||'+243';
-function updateBal(){ document.getElementById('bal').innerText=balance+' CDF'; localStorage.setItem('beni_bal',balance); }
-updateBal();
-
-const matchs = [
-{id:1, eq1:'TP Mazembe', eq2:'Vita Club', c1:1.85, cx:3.20, c2:2.10},
-{id:2, eq1:'Man City', eq2:'Arsenal', c1:2.05, cx:3.40, c2:2.30},
-{id:3, eq1:'Real Madrid', eq2:'Barca', c1:2.15, cx:3.10, c2:2.00},
-{id:4, eq1:'Beni Union', eq2:'Goma FC', c1:1.90, cx:3.00, c2:2.20},
-]
-
-function renderMatches(){
-let html='';
-matchs.forEach(m=>{
-html+=`<div class="match"><div><b>${m.eq1}</b> vs <b>${m.eq2}</b></div><div class="odds">
-<div class="odd" onclick="addBet(${m.id},'${m.eq1}',${m.c1})">${m.c1}</div>
-<div class="odd" onclick="addBet(${m.id},'NUL',${m.cx})">${m.cx}</div>
-<div class="odd" onclick="addBet(${m.id},'${m.eq2}',${m.c2})">${m.c2}</div>
-</div></div>`;
-});
-document.getElementById('matches').innerHTML=html;
-}
-renderMatches();
-
-function addBet(id, choix, cote){
-coupon.push({id, choix, cote});
-renderCoupon();
-}
-
-function renderCoupon(){
-if(coupon.length==0){document.getElementById('coupon').innerHTML='Aucun pari'; return;}
-let coteTot=1; let h='';
-coupon.forEach((c,i)=>{
-coteTot*=c.cote;
-h+=`${i+1}. Match ${c.id} - ${c.choix} @${c.cote}<br>`;
-});
-h+=`<br><b>Cote totale: ${coteTot.toFixed(2)}</b>`;
-document.getElementById('coupon').innerHTML=h;
-}
-
-function placerPari(){
-let mise = parseInt(document.getElementById('mise').value);
-if(!mise || mise<1000){alert('Mise minimum 1000 CDF'); return;}
-if(mise>balance){alert('Solde insuffisant. Faites un dépôt'); return;}
-if(coupon.length==0){alert('Choisissez au moins 1 cote'); return;}
-let coteTot=1; coupon.forEach(c=>coteTot*=c.cote);
-let gain = Math.floor(mise*coteTot);
-balance-=mise;
-updateBal();
-historique.unshift({date:new Date().toLocaleString(), mise, coteTot:coteTot.toFixed(2), gain, coupon:[...coupon], statut:'En attente'});
-localStorage.setItem('beni_hist', JSON.stringify(historique));
-coupon=[]; document.getElementById('mise').value=''; renderCoupon(); renderHist();
-alert('Pari placé! Gain potentiel: '+gain+' CDF');
-}
-
-function renderHist(){
-if(historique.length==0)return;
-let h='';
-historique.forEach(p=>{
-h+=`<div style="border-bottom:1px solid #334155;padding:6px 0">${p.date} - Mise ${p.mise} CDF @${p.coteTot} -> Gain ${p.gain} CDF - <span style="color:orange">${p.statut}</span></div>`;
-});
-document.getElementById('historique').innerHTML=h;
-}
-renderHist();
-
-function depot(){
-let montant = prompt('Montant dépôt CDF (Mobile Money: Airtel/Vodacom/Orange):');
-montant=parseInt(montant);
-if(montant && montant>=1000){ balance+=montant; updateBal(); alert('Dépôt de '+montant+' CDF réussi! (Simulation) - Intégrez Flutterwave/CinetPay pour réel'); }
-}
-function retrait(){
-let montant = prompt('Montant retrait CDF:');
-montant=parseInt(montant);
-if(montant && montant<=balance && montant>=2000){ balance-=montant; updateBal(); alert('Demande retrait '+montant+' CDF envoyée à votre Mobile Money'); } else { alert('Montant invalide ou solde insuffisant'); }
-}
+const leagues=["Premier League","La Liga","Ligue 1","Bundesliga","Serie A","Linafoot","Botola","CAF","NBA"];const teams=["Real","Barca","Man City","PSG","Bayern","TP Mazembe","Vita Club","Al Ahly","Raja","Wydad","Leopards","Maniema","Inter","Milan","Arsenal","Chelsea","Dortmund","Ajax","Benfica"];
+function gen(n){let a=[];for(let i=1;i<=n;i++){let t1=teams[Math.floor(Math.random()*teams.length)]+" "+(Math.floor(Math.random()*90)+1);let t2=teams[Math.floor(Math.random()*teams.length)]+" "+(Math.floor(Math.random()*90)+1);let lg=leagues[Math.floor(Math.random()*leagues.length)];let h=Math.floor(Math.random()*11+12);let mm=[0,15,30,45][Math.floor(Math.random()*4)];a.push({id:i,league:lg,team1:t1,team2:t2,time:`${String(h).padStart(2,'0')}:${String(mm).padStart(2,'0')}`,o1:(Math.random()*3+1.4).toFixed(2),oX:(Math.random()*1.4+2.8).toFixed(2),o2:(Math.random()*3.5+1.5).toFixed(2)})}return a;}
+const allMatches=gen(1200);let filtered=allMatches;let panier=[];let showN=100;
+function render(){document.getElementById('count').innerText=filtered.length+" matchs - "+panier.length+" selections";let s=filtered.slice(0,showN);document.getElementById('matches').innerHTML=s.map(m=>`<div class="match"><div class="league">${m.league} - ID ${m.id}</div><div class="teams">${m.team1} vs ${m.team2}</div><div class="time">Aujourd'hui ${m.time}</div><div class="odds"><div class="odd" onclick="addBet(${m.id},1,'${m.o1}')">1<br>${m.o1}</div><div class="odd" onclick="addBet(${m.id},'X','${m.oX}')">X<br>${m.oX}</div><div class="odd" onclick="addBet(${m.id},2,'${m.o2}')">2<br>${m.o2}</div></div></div>`).join('');}
+function showMore(){showN+=100;render();}function addBet(id,c,o){let m=allMatches.find(x=>x.id==id);panier=panier.filter(p=>p.id!=id);panier.push({id,c,o,match:m.team1+' vs '+m.team2});renderSlip();document.getElementById('slip').classList.add('show');render();}
+function renderSlip(){document.getElementById('slipCount').innerText=panier.length+' selections';document.getElementById('slipList').innerHTML=panier.map(p=>`<div style="display:flex;justify-content:space-between;padding:6px;border-bottom:1px solid #334155"><span>${p.match} => ${p.c} @${p.o}</span><span onclick="removeBet(${p.id})" style="color:red">x</span></div>`).join('');let tot=1;panier.forEach(p=>tot*=parseFloat(p.o));document.getElementById('coteTot').innerText=tot.toFixed(2);let mise=parseFloat(document.getElementById('mise').value)||0;document.getElementById('gain').innerText=(mise*tot).toFixed(0)+' CDF';}
+function removeBet(id){panier=panier.filter(p=>p.id!=id);renderSlip();if(panier.length==0)document.getElementById('slip').classList.remove('show');}
+function filterM(){let q=document.getElementById('search').value.toLowerCase();filtered=allMatches.filter(m=>(m.team1+m.team2+m.league).toLowerCase().includes(q));showN=100;render();}
+document.getElementById('mise').addEventListener('input',renderSlip);render();
 </script>
 </body>
-  </html>
+</html>
