@@ -5,29 +5,131 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BENI-BET</title>
 <style>
+*{box-sizing:border-box}
 body{margin:0;font-family:Arial;background:#0f172a;color:white}
-.header{background:#16a34a;padding:16px;text-align:center;font-size:22px;font-weight:bold}
-.card{background:#1e293b;margin:12px;padding:16px;border-radius:12px}
+.header{background:#16a34a;padding:12px;text-align:center;font-weight:bold;font-size:22px;position:sticky;top:0;z-index:10}
+.card{background:#1e293b;margin:12px;padding:14px;border-radius:12px}
 .balance{font-size:32px;color:#4ade80;font-weight:bold}
-.btn{width:100%;padding:12px;border:none;border-radius:8px;font-size:16px;margin-top:10px;font-weight:bold}
+.btn{width:100%;padding:14px;border:none;border-radius:10px;font-weight:bold;font-size:16px;margin-top:8px}
 .green{background:#16a34a;color:white}
 .gray{background:#334155;color:white}
-.match{background:#334155;padding:10px;border-radius:8px;margin-top:10px;display:flex;justify-content:space-between}
+.match{background:#334155;padding:12px;border-radius:10px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.odds{display:flex;gap:6px}
+.odd{background:#0f172a;padding:8px 12px;border-radius:6px;border:1px solid #16a34a}
+.input{width:100%;padding:12px;border-radius:8px;border:none;margin:6px 0}
+.bet-slip{position:fixed;bottom:0;left:0;right:0;background:#1e293b;padding:12px;border-top:2px solid #16a34a;display:none}
 </style>
 </head>
 <body>
-<div class="header">BENI-BET 🇨🇩</div>
+<div class="header">⚽ BÉNI BET - Goma</div>
+
 <div class="card">
-<div>Portefeuille</div>
-<div class="balance">0 CDF</div>
-<button class="btn green">DEPOT Mobile Money</button>
-<button class="btn gray">RETRAIT</button>
+<div>Bienvenue <span id="userPhone">+243</span></div>
+<div class="balance" id="bal">0 CDF</div>
+<div style="display:flex;gap:8px">
+<button class="btn green" onclick="depot()">DÉPÔT</button>
+<button class="btn gray" onclick="retrait()">RETRAIT</button>
 </div>
+</div>
+
 <div class="card">
-<h3>Matchs du jour</h3>
-<div class="match"><span>Mazembe vs Vita</span><span>1.85 | 2.10</span></div>
-<div class="match"><span>Real vs Barca</span><span>2.10 | 1.95</span></div>
-<button class="btn green">PARIER</button>
+<h3>🔥 Matchs du Jour</h3>
+<div id="matches"></div>
 </div>
+
+<div class="card">
+<h3>📋 Mon Coupon</h3>
+<div id="coupon">Aucun pari</div>
+<input id="mise" type="number" class="input" placeholder="Mise en CDF (min 1000)">
+<button class="btn green" onclick="placerPari()">PLACER LE PARI</button>
+</div>
+
+<div class="card">
+<h3>📜 Mes Paris</h3>
+<div id="historique">Aucun historique</div>
+</div>
+
+<script>
+let balance = parseInt(localStorage.getItem('beni_bal')||'0');
+let coupon = [];
+let historique = JSON.parse(localStorage.getItem('beni_hist')||'[]');
+let tel = localStorage.getItem('beni_tel');
+if(!tel){ tel=prompt('Entrez votre numéro de téléphone (+243):'); if(tel){localStorage.setItem('beni_tel',tel)}}
+document.getElementById('userPhone').innerText=tel||'+243';
+function updateBal(){ document.getElementById('bal').innerText=balance+' CDF'; localStorage.setItem('beni_bal',balance); }
+updateBal();
+
+const matchs = [
+{id:1, eq1:'TP Mazembe', eq2:'Vita Club', c1:1.85, cx:3.20, c2:2.10},
+{id:2, eq1:'Man City', eq2:'Arsenal', c1:2.05, cx:3.40, c2:2.30},
+{id:3, eq1:'Real Madrid', eq2:'Barca', c1:2.15, cx:3.10, c2:2.00},
+{id:4, eq1:'Beni Union', eq2:'Goma FC', c1:1.90, cx:3.00, c2:2.20},
+]
+
+function renderMatches(){
+let html='';
+matchs.forEach(m=>{
+html+=`<div class="match"><div><b>${m.eq1}</b> vs <b>${m.eq2}</b></div><div class="odds">
+<div class="odd" onclick="addBet(${m.id},'${m.eq1}',${m.c1})">${m.c1}</div>
+<div class="odd" onclick="addBet(${m.id},'NUL',${m.cx})">${m.cx}</div>
+<div class="odd" onclick="addBet(${m.id},'${m.eq2}',${m.c2})">${m.c2}</div>
+</div></div>`;
+});
+document.getElementById('matches').innerHTML=html;
+}
+renderMatches();
+
+function addBet(id, choix, cote){
+coupon.push({id, choix, cote});
+renderCoupon();
+}
+
+function renderCoupon(){
+if(coupon.length==0){document.getElementById('coupon').innerHTML='Aucun pari'; return;}
+let coteTot=1; let h='';
+coupon.forEach((c,i)=>{
+coteTot*=c.cote;
+h+=`${i+1}. Match ${c.id} - ${c.choix} @${c.cote}<br>`;
+});
+h+=`<br><b>Cote totale: ${coteTot.toFixed(2)}</b>`;
+document.getElementById('coupon').innerHTML=h;
+}
+
+function placerPari(){
+let mise = parseInt(document.getElementById('mise').value);
+if(!mise || mise<1000){alert('Mise minimum 1000 CDF'); return;}
+if(mise>balance){alert('Solde insuffisant. Faites un dépôt'); return;}
+if(coupon.length==0){alert('Choisissez au moins 1 cote'); return;}
+let coteTot=1; coupon.forEach(c=>coteTot*=c.cote);
+let gain = Math.floor(mise*coteTot);
+balance-=mise;
+updateBal();
+historique.unshift({date:new Date().toLocaleString(), mise, coteTot:coteTot.toFixed(2), gain, coupon:[...coupon], statut:'En attente'});
+localStorage.setItem('beni_hist', JSON.stringify(historique));
+coupon=[]; document.getElementById('mise').value=''; renderCoupon(); renderHist();
+alert('Pari placé! Gain potentiel: '+gain+' CDF');
+}
+
+function renderHist(){
+if(historique.length==0)return;
+let h='';
+historique.forEach(p=>{
+h+=`<div style="border-bottom:1px solid #334155;padding:6px 0">${p.date} - Mise ${p.mise} CDF @${p.coteTot} -> Gain ${p.gain} CDF - <span style="color:orange">${p.statut}</span></div>`;
+});
+document.getElementById('historique').innerHTML=h;
+}
+renderHist();
+
+function depot(){
+let montant = prompt('Montant dépôt CDF (Mobile Money: Airtel/Vodacom/Orange):');
+montant=parseInt(montant);
+if(montant && montant>=1000){ balance+=montant; updateBal(); alert('Dépôt de '+montant+' CDF réussi! (Simulation) - Intégrez Flutterwave/CinetPay pour réel'); }
+}
+function retrait(){
+let montant = prompt('Montant retrait CDF:');
+montant=parseInt(montant);
+if(montant && montant<=balance && montant>=2000){ balance-=montant; updateBal(); alert('Demande retrait '+montant+' CDF envoyée à votre Mobile Money'); } else { alert('Montant invalide ou solde insuffisant'); }
+}
+</script>
 </body>
-</html>
+  </html>
